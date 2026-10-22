@@ -1,7 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import SugestaoItem from '../components/SugestaoItem'
-import { agruparItens, calcularTotal } from '../utils/carrinho'
+import ProdutoCard from '../components/ProdutoCard'
+import {
+  agruparItens,
+  calcularTotal,
+  produtoDisponivel,
+  VALOR_MINIMO_FRETE_GRATIS,
+  valorFaltanteParaFreteGratis,
+} from '../utils/carrinho'
 import { validarCupom } from '../utils/cupons'
 import { formatarPreco } from '../utils/formatarPreco'
 
@@ -13,8 +19,11 @@ export default function Carrinho({ carrinho, produtos, clienteAtual, onAdicionar
   const itens = agruparItens(carrinho)
   const total = calcularTotal(carrinho)
   const totalComDesconto = cupomAplicado ? total * (1 - cupomAplicado.desconto) : total
+  const freteGratis = totalComDesconto >= VALOR_MINIMO_FRETE_GRATIS
+  const faltanteParaFreteGratis = valorFaltanteParaFreteGratis(totalComDesconto)
 
   const sugestoes = produtos
+    .filter((produto) => produtoDisponivel(produto))
     .filter((produto) => !carrinho.find((item) => item.id === produto.id))
     .slice(0, 3)
 
@@ -97,13 +106,22 @@ export default function Carrinho({ carrinho, produtos, clienteAtual, onAdicionar
             <span>Total</span>
             <span>{formatarPreco(totalComDesconto)}</span>
           </p>
+
+          <p className={`resumo-linha frete-status ${freteGratis ? 'frete-status-ativo' : ''}`}>
+            <span>Frete</span>
+            <span>
+              {freteGratis
+                ? 'Frete grátis'
+                : `Faltam ${formatarPreco(faltanteParaFreteGratis)}`}
+            </span>
+          </p>
         </aside>
       </div>
 
       <h2>Você também pode gostar</h2>
       <div className="sugestoes">
         {sugestoes.map((produto) => (
-          <SugestaoItem key={produto.id} produto={produto} onAdicionar={onAdicionar} />
+          <ProdutoCard key={produto.id} produto={produto} onAdicionar={onAdicionar} />
         ))}
       </div>
     </section>

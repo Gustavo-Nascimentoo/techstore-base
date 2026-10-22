@@ -1,7 +1,19 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router'
+import ProdutoCard from '../components/ProdutoCard'
+import {
+  produtoTemFreteGratis,
+  produtoTemPrecoValido,
+  valorRestanteParaFreteGratis,
+} from '../utils/carrinho'
+import { formatarPreco } from '../utils/formatarPreco'
 
-export default function PaginaProduto({ produtos, onAdicionar }) {
+export default function PaginaProduto({ produtos, onAdicionar, onRegistrarAviso, clienteAtual }) {
   const { id } = useParams()
+  const [nome, setNome] = useState('')
+  const [email, setEmail] = useState('')
+  const [avisado, setAvisado] = useState(false)
+
   const produto = produtos.find((item) => item.id === id)
 
   if (!produto) {
@@ -15,9 +27,25 @@ export default function PaginaProduto({ produtos, onAdicionar }) {
     )
   }
 
+  const semPreco = !produtoTemPrecoValido(produto)
+  const esgotado = produto.estoque === 0
+  const freteGratis = !semPreco && produtoTemFreteGratis(produto)
+  const valorFaltante = !semPreco ? valorRestanteParaFreteGratis(produto) : 0
+
   const relacionados = produtos
     .filter((item) => item.category === produto.category && item.id !== produto.id)
     .slice(0, 4)
+
+  function enviarAviso(evento) {
+    evento.preventDefault()
+
+    if (!nome.trim() || !email.trim()) {
+      return
+    }
+
+    onRegistrarAviso?.(produto, { nome, email })
+    setAvisado(true)
+  }
 
   return (
     <section>
@@ -37,17 +65,50 @@ export default function PaginaProduto({ produtos, onAdicionar }) {
           <p className="card-avaliacao">
             ★ {produto.rating.rate} <span>({produto.rating.count} avaliações)</span>
           </p>
-          <p className="detalhe-preco">R$ {produto.price.toFixed(2).replace('.', ',')}</p>
+          <p className="detalhe-preco">{semPreco ? 'Preço indisponível' : formatarPreco(produto.price)}</p>
+          {!semPreco && (
+            <p className="detalhe-frete">
+              {freteGratis
+                ? 'Frete grátis ativado'
+                : `Faltam ${formatarPreco(valorFaltante)} para ganhar frete grátis`}
+            </p>
+          )}
           <p className="detalhe-descricao">{produto.description}</p>
           <p className="detalhe-estoque">{produto.estoque} unidades disponíveis</p>
 
-          <button
-            className="botao botao-grande"
-            onClick={() => onAdicionar(produto)}
-            disabled={produto.estoque === 0}
-          >
-            Adicionar ao carrinho
-          </button>
+          {!esgotado && !semPreco ? (
+            <button
+              className="botao botao-grande"
+              onClick={() => onAdicionar(produto)}
+            >
+              Adicionar ao carrinho
+            </button>
+          ) : (
+            <button className="botao botao-grande" disabled>
+              {semPreco ? 'Indisponível' : 'Esgotado'}
+            </button>
+          )}
+
+          {esgotado && (
+            <form onSubmit={enviarAviso} className="alerta-esgotado">
+              <p>Este produto está esgotado. Deixe seu e-mail para receber aviso quando voltar.</p>
+              <input
+                type="text"
+                value={nome}
+                onChange={(evento) => setNome(evento.target.value)}
+                placeholder="Seu nome"
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={(evento) => setEmail(evento.target.value)}
+                placeholder="Seu e-mail"
+              />
+              <button type="submit" className="botao botao-secundario">
+                {avisado ? 'Aviso registrado' : 'Avise-me'}
+              </button>
+            </form>
+          )}
 
           <ul className="detalhe-garantias">
             <li>Troca grátis em até 30 dias</li>
@@ -59,18 +120,7 @@ export default function PaginaProduto({ produtos, onAdicionar }) {
       <h2>Produtos relacionados</h2>
       <div className="grade">
         {relacionados.map((item) => (
-          <article key={item.id} className="card">
-            <Link to={`/produto/${item.id}`} className="card-link">
-              <div className="card-imagem-moldura">
-                <img src={item.image} alt={item.title} className="card-imagem" />
-              </div>
-              <h3 className="card-titulo">{item.title}</h3>
-            </Link>
-            <p className="preco">R$ {Number(item.price).toFixed(2).replace('.', ',')}</p>
-            <button className="botao" onClick={() => onAdicionar(item)}>
-              Adicionar ao carrinho
-            </button>
-          </article>
+          <ProdutoCard key={item.id} produto={item} onAdicionar={onAdicionar} />
         ))}
       </div>
     </section>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import ProdutoCard from '../components/ProdutoCard'
+import { produtoDisponivel } from '../utils/carrinho'
 
 const CATEGORIAS = [
   { id: 'todas', nome: 'Todas' },
@@ -11,13 +12,15 @@ const CATEGORIAS = [
 
 export default function Loja({ produtos, onAdicionar }) {
   const [categoria, setCategoria] = useState('todas')
-  const [produtosVisiveis, setProdutosVisiveis] = useState(produtos)
+  const [produtosVisiveis, setProdutosVisiveis] = useState([])
 
   useEffect(() => {
+    const disponiveis = produtos.filter((produto) => produtoDisponivel(produto))
+
     if (categoria === 'todas') {
-      setProdutosVisiveis(produtos)
+      setProdutosVisiveis(disponiveis)
     } else {
-      setProdutosVisiveis(produtos.filter((produto) => produto.category === categoria))
+      setProdutosVisiveis(disponiveis.filter((produto) => produto.category === categoria))
     }
   }, [categoria, produtos])
 
@@ -42,9 +45,13 @@ export default function Loja({ produtos, onAdicionar }) {
       </div>
 
       <div className="grade">
-        {produtosVisiveis.map((produto) => (
-          <ProdutoCard key={produto.id} produto={produto} onAdicionar={onAdicionar} />
-        ))}
+        {produtosVisiveis.length > 0 ? (
+          produtosVisiveis.map((produto) => (
+            <ProdutoCard key={produto.id} produto={produto} onAdicionar={onAdicionar} />
+          ))
+        ) : (
+          <p className="estado-vazio">Nenhum produto disponível nesta categoria.</p>
+        )}
       </div>
     </section>
   )

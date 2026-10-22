@@ -1,6 +1,9 @@
+import { produtoTemPrecoValido } from '../utils/carrinho'
 import { formatarPreco } from '../utils/formatarPreco'
 
 export default function SugestaoItem({ produto, onAdicionar }) {
+  const indisponivel = !produtoTemPrecoValido(produto) || produto.estoque === 0
+
   return (
     <div className="sugestao">
       <div className="sugestao-imagem-moldura">
@@ -8,10 +11,10 @@ export default function SugestaoItem({ produto, onAdicionar }) {
       </div>
       <div className="sugestao-info">
         <p className="sugestao-titulo">{produto.title}</p>
-        <p className="preco preco-pequeno">{formatarPreco(produto.price)}</p>
+        <p className="preco preco-pequeno">{produtoTemPrecoValido(produto) ? formatarPreco(produto.price) : 'Preço indisponível'}</p>
       </div>
-      <button className="botao botao-pequeno" onClick={() => onAdicionar(produto)}>
-        Comprar
+      <button className="botao botao-pequeno" onClick={() => onAdicionar(produto)} disabled={indisponivel}>
+        {indisponivel ? 'Indisponível' : 'Comprar'}
       </button>
     </div>
   )
